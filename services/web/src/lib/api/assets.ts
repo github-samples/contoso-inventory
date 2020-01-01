@@ -11,6 +11,7 @@ export interface Asset {
   warrantyExpiry: string | null;
   status: string;
   notes: string | null;
+  qrPayload: string | null;
 }
 
 export function listAssets(): Promise<Asset[]> {
@@ -42,4 +43,14 @@ export function createAsset(body: Partial<Asset>): Promise<{ id: number }> {
 
 export function statsByStatus(): Promise<Record<string, number>> {
   return apiFetch<Record<string, number>>(`${SERVICE_URLS.assets}/assets/stats/by-status`);
+}
+
+// Fetch the server-rendered QR code for an asset as an SVG string. Returned as
+// raw markup (not JSON) so it can be inlined server-side into the detail page.
+export async function getAssetQrSvg(id: number): Promise<string> {
+  const res = await fetch(`${SERVICE_URLS.assets}/assets/${id}/qr`);
+  if (!res.ok) {
+    throw new Error(`${res.status} ${res.statusText} fetching QR for asset ${id}`);
+  }
+  return res.text();
 }

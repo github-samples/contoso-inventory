@@ -13,6 +13,7 @@ public static class AssetEndpoints
         group.MapGet("/", GetAll);
         group.MapGet("/search", Search);
         group.MapGet("/{id:int}", GetById);
+        group.MapGet("/{id:int}/qr", GetQr);
         group.MapGet("/by-tag/{tag}", GetByTag);
         group.MapPost("/", Create);
         group.MapPut("/{id:int}", Update);
@@ -30,7 +31,8 @@ public static class AssetEndpoints
                purchase_date   AS PurchaseDate,
                warranty_expiry AS WarrantyExpiry,
                status          AS Status,
-               notes           AS Notes
+               notes           AS Notes,
+               qr_payload      AS QrPayload
         FROM assets
     """;
 
@@ -66,6 +68,26 @@ public static class AssetEndpoints
         return item is null ? Results.NotFound() : Results.Ok(item);
     }
 
+    // Render the asset's stored QR payload as an SVG image. The payload is a
+    // deep link to the asset detail page; rendering is pure-managed so it works
+    // unchanged inside the Linux container.
+    private static IResult GetQr(AssetsDb db, int id)
+    {
+        using var conn = db.Open();
+        var payload = conn.QueryFirstOrDefault<string?>(
+            "SELECT qr_payload FROM assets WHERE id = @id;", new { id });
+        if (payload is null)
+        {
+            return Results.NotFound();
+        }
+        // Backstop: older rows may predate the backfill.
+        if (string.IsNullOrEmpty(payload))
+        {
+            payload = QrPayload.For(id);
+        }
+        return Results.Text(QrPayload.ToSvg(payload), "image/svg+xml");
+    }
+
     // NOTE: deliberately no input validation here. This is the target of the
     // "Add input validation to the asset create form" course exercise. Empty
     // strings, missing required fields, and nonsensical dates are all accepted.
@@ -79,6 +101,10 @@ public static class AssetEndpoints
                     @PurchaseDate, @WarrantyExpiry, @Status, @Notes);
             SELECT last_insert_rowid();
         """, input);
+        // The QR payload is a deep link that needs the id, which only exists after
+        // the insert — so populate it in a second write.
+        conn.Execute("UPDATE assets SET qr_payload = @payload WHERE id = @id;",
+            new { payload = QrPayload.For(id), id });
         return Results.Created($"/assets/{id}", new { id });
     }
 

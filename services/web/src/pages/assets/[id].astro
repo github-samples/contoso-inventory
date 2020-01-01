@@ -1,17 +1,24 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import StatusBadge from "../../components/StatusBadge.astro";
-import { getAsset } from "../../lib/api/assets";
+import { getAsset, getAssetQrSvg } from "../../lib/api/assets";
 import { listAssignments } from "../../lib/api/workforce";
 
 const id = Number(Astro.params.id);
 let asset: Awaited<ReturnType<typeof getAsset>> | null = null;
 let assignments: Awaited<ReturnType<typeof listAssignments>> = [];
+let qrSvg: string | null = null;
 let error: string | null = null;
 
 try {
   asset = await getAsset(id);
   assignments = await listAssignments({ assetId: id });
+  try {
+    qrSvg = await getAssetQrSvg(id);
+  } catch {
+    // The QR image is non-critical; the page still renders without it.
+    qrSvg = null;
+  }
 } catch (e: any) {
   error = e.message;
 }
@@ -34,6 +41,27 @@ try {
           <div class="label">Purchase date</div><div>{asset.purchaseDate ?? "—"}</div>
           <div class="label">Warranty expiry</div><div>{asset.warrantyExpiry ?? "—"}</div>
           <div class="label">Notes</div><div>{asset.notes ?? "—"}</div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-3">QR code</h2>
+          {qrSvg ? (
+            <figure class="mb-0">
+              <div
+                class="qr-code"
+                role="img"
+                aria-label={`QR code linking to the detail page for asset ${asset.assetTag}`}
+                set:html={qrSvg}
+              />
+              <figcaption class="text-secondary small mt-2">
+                Scan to open this asset. Links to <span class="font-monospace">{asset.qrPayload ?? `/assets/${asset.id}`}</span>.
+              </figcaption>
+            </figure>
+          ) : (
+            <p class="text-secondary mb-0">QR code is unavailable right now.</p>
+          )}
         </div>
       </div>
 

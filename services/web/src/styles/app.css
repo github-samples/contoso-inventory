@@ -37,3 +37,15 @@ main {
 .badge.bg-primary  { background-color: #1d4ed8 !important; color: #fff !important; }
 .badge.bg-danger   { background-color: #991b1b !important; color: #fff !important; }
 .badge.bg-secondary{ background-color: #374151 !important; color: #fff !important; }
+
+/* Constrain the inline server-rendered QR code SVG to a sensible display size. */
+.qr-code {
+  display: inline-block;
+  width: 180px;
+  max-width: 100%;
+}
+.qr-code svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}

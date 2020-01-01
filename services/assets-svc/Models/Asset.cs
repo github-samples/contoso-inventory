@@ -14,6 +14,7 @@ public class Asset
     public string? WarrantyExpiry { get; set; }
     public string Status { get; set; } = "";
     public string? Notes { get; set; }
+    public string? QrPayload { get; set; }
 }
 
 public class AssetCreate
