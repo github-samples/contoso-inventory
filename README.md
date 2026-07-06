@@ -34,7 +34,7 @@ flowchart LR
     workforce -.JWKs.-> auth
 ```
 
-All services talk over **REST/JSON**. Each service owns its own SQLite database.
+All services talk over **REST/JSON**. Most backend services own a local SQLite database; `web` is stateless, and `reporting-svc` reads live data from other services instead of owning a primary database.
 
 | Service              | Stack                                  | Port  | Owns                                |
 |----------------------|----------------------------------------|-------|-------------------------------------|
@@ -82,9 +82,11 @@ docker compose up --build
 
 Open http://localhost:4321.
 
-## Running a single service for development
+## Repository tour
 
-Each service folder has its own `README.md` with native (non-Docker) run instructions and per-service scripts. See:
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for a structured repo tour: purpose, modules, entry points, data layers, scripts, and known gaps for each stack.
+
+Each service folder also has its own `README.md` with native (non-Docker) run instructions and per-service scripts. See:
 
 - [`services/web/README.md`](services/web/README.md)
 - [`services/assets-svc/README.md`](services/assets-svc/README.md)
