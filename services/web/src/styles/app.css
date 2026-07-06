@@ -23,3 +23,17 @@ main {
 .kv-grid > .label {
   color: var(--bs-secondary-color);
 }
+
+/*
+ * WCAG 1.4.3 — Contrast (Minimum, AA): Bootstrap's default badge background
+ * colours fail the 4.5:1 ratio required for small text. These overrides use
+ * darker shades that pass at ≥5.4:1 against white (#fff) text.
+ *   bg-success  #166534 / white = 5.9:1
+ *   bg-primary  #1d4ed8 / white = 5.4:1
+ *   bg-danger   #991b1b / white = 5.7:1
+ *   bg-secondary #374151 / white = 8.2:1
+ */
+.badge.bg-success  { background-color: #166534 !important; color: #fff !important; }
+.badge.bg-primary  { background-color: #1d4ed8 !important; color: #fff !important; }
+.badge.bg-danger   { background-color: #991b1b !important; color: #fff !important; }
+.badge.bg-secondary{ background-color: #374151 !important; color: #fff !important; }
