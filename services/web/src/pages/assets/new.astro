@@ -41,45 +41,45 @@ const statuses = ["available", "assigned", "retired", "lost"];
   <form method="post" class="card shadow-sm">
     <div class="card-body row g-3">
       <div class="col-md-6">
-        <label class="form-label">Asset tag</label>
-        <input class="form-control" name="assetTag" />
+        <label for="assetTag" class="form-label">Asset tag</label>
+        <input id="assetTag" class="form-control" name="assetTag" />
       </div>
       <div class="col-md-6">
-        <label class="form-label">Type</label>
-        <select class="form-select" name="assetType">
+        <label for="assetType" class="form-label">Type</label>
+        <select id="assetType" class="form-select" name="assetType">
           <option value="">(choose)</option>
           {types.map(t => <option value={t}>{t}</option>)}
         </select>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Manufacturer</label>
-        <input class="form-control" name="manufacturer" />
+        <label for="manufacturer" class="form-label">Manufacturer</label>
+        <input id="manufacturer" class="form-control" name="manufacturer" />
       </div>
       <div class="col-md-6">
-        <label class="form-label">Model</label>
-        <input class="form-control" name="model" />
+        <label for="model" class="form-label">Model</label>
+        <input id="model" class="form-control" name="model" />
       </div>
       <div class="col-md-6">
-        <label class="form-label">Serial number</label>
-        <input class="form-control" name="serialNumber" />
+        <label for="serialNumber" class="form-label">Serial number</label>
+        <input id="serialNumber" class="form-control" name="serialNumber" />
       </div>
       <div class="col-md-6">
-        <label class="form-label">Status</label>
-        <select class="form-select" name="status">
+        <label for="status" class="form-label">Status</label>
+        <select id="status" class="form-select" name="status">
           {statuses.map(s => <option value={s}>{s}</option>)}
         </select>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Purchase date</label>
-        <input class="form-control" name="purchaseDate" type="date" />
+        <label for="purchaseDate" class="form-label">Purchase date</label>
+        <input id="purchaseDate" class="form-control" name="purchaseDate" type="date" />
       </div>
       <div class="col-md-6">
-        <label class="form-label">Warranty expiry</label>
-        <input class="form-control" name="warrantyExpiry" type="date" />
+        <label for="warrantyExpiry" class="form-label">Warranty expiry</label>
+        <input id="warrantyExpiry" class="form-control" name="warrantyExpiry" type="date" />
       </div>
       <div class="col-12">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control" name="notes" rows="3"></textarea>
+        <label for="notes" class="form-label">Notes</label>
+        <textarea id="notes" class="form-control" name="notes" rows="3"></textarea>
       </div>
       <div class="col-12 d-flex align-items-center gap-3">
         <button class="btn btn-dark">Create</button>
