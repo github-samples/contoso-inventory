@@ -12,9 +12,12 @@
     "dev:auth": "cd services/auth-svc && mkdir -p data && SERVER_PORT=5006 AUTH_DB_PATH=$PWD/data/auth.db LOGGING_LEVEL_ROOT=${LOG_LEVEL_JAVA:-WARN} mvn -q spring-boot:run",
     "dev": "node scripts/dev-banner.mjs && concurrently --names web,assets,workforce,reporting,notif,audit,auth --prefix-colors auto --kill-others-on-fail npm:dev:web npm:dev:assets npm:dev:workforce npm:dev:reporting npm:dev:notifications npm:dev:audit npm:dev:auth",
     "dev:verbose": "LOG_LEVEL_JAVA=INFO LOG_LEVEL_DOTNET=Information LOG_LEVEL_PY=info npm run dev",
-    "install:all": "npm --prefix services/web install && pip install -e services/reporting-svc && pip install -e services/notifications-svc"
+    "install:all": "npm --prefix services/web install && pip install -e services/reporting-svc && pip install -e services/notifications-svc",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "concurrently": "^10.0.5"
   }
 }

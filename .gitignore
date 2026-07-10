@@ -50,3 +50,8 @@ dotnet/runfile-discovery/
 
 # Python editable-install metadata
 *.egg-info/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
