@@ -20,6 +20,8 @@ stack_for_file() {
   case "$1" in
     services/assets-svc/*.cs) echo dotnet ;;
     services/workforce-svc/*.java|services/workforce-svc/pom.xml) echo java ;;
+    services/audit-svc/*.java|services/audit-svc/pom.xml) echo audit ;;
+    services/auth-svc/*.java|services/auth-svc/pom.xml) echo auth ;;
     services/reporting-svc/*.py|services/reporting-svc/pyproject.toml) echo python ;;
     services/web/*.astro|services/web/*.ts|services/web/*.tsx|tests/playwright/*.ts|playwright.config.ts|package.json|package-lock.json) echo playwright ;;
   esac
@@ -29,6 +31,8 @@ run_stack() {
   case "$1" in
     dotnet) NAME=".NET"; COMMAND="dotnet test services/assets-svc/Tests/AssetsService.Tests.csproj" ;;
     java) NAME="Java"; COMMAND="cd services/workforce-svc && mvn test --no-transfer-progress" ;;
+    audit) NAME="Java (audit-svc)"; COMMAND="cd services/audit-svc && mvn test --no-transfer-progress" ;;
+    auth) NAME="Java (auth-svc)"; COMMAND="cd services/auth-svc && mvn test --no-transfer-progress" ;;
     python) NAME="Python"; COMMAND="cd services/reporting-svc && pytest" ;;
     playwright) NAME="Web / Playwright"; COMMAND="npm run test:e2e" ;;
     *) return 0 ;;

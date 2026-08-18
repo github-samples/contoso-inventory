@@ -1,14 +1,12 @@
 package com.contoso.auth;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Date;
@@ -38,12 +36,12 @@ public class JwtIssuer {
     public String issue(String username, String role) {
         Date now = new Date();
         return Jwts.builder()
-                .setIssuer(issuer)
-                .setSubject(username)
+                .issuer(issuer)
+                .subject(username)
                 .claim("role", role)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + ttlSeconds * 1000L))
-                .signWith((RSAPrivateKey) keyPair.getPrivate(), SignatureAlgorithm.RS256)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + ttlSeconds * 1000L))
+                .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
                 .compact();
     }
 
