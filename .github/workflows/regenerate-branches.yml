@@ -31,12 +31,9 @@ on:
         description: 'Immutable tag version YYYY-MM (blank = current month).'
         required: false
         default: ''
-  # schedule disabled until both github-samples/advanced-copilot-cli (source) and this repo are PUBLIC —
-  # the pull step clones ACC anonymously via GITHUB_TOKEN, which cannot read an INTERNAL repo (404).
-  # Re-enable this schedule as a go-live step. Manual workflow_dispatch still works.
-  # schedule:
-  #   # Daily backstop at 07:17 UTC (off-peak). Catches ACC changes without a manual run.
-  #   - cron: '17 7 * * *'
+  schedule:
+    # Daily backstop at 07:17 UTC (off-peak). Catches ACC changes without a manual run.
+    - cron: '17 7 * * *'
 
 permissions:
   contents: write
