@@ -57,6 +57,10 @@ jobs:
           node-version: '22'
       - name: Ensure base commit present
         run: git fetch --no-tags origin "$(node -e "console.log(require('./course-build/manifest.json').base.sha)")" || true
+      - name: Configure git identity (for git am)
+        run: |
+          git config user.name "acc-course-bot"
+          git config user.email "acc-course-bot@users.noreply.github.com"
       - name: Deterministic delta check (trees, assets, ancestry)
         run: node course-build/scripts/build-branches.mjs --check
       - name: Self-test (classification + path detection)
