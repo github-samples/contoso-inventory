@@ -128,6 +128,14 @@ jobs:
         run: |
           git config user.name "acc-course-bot"
           git config user.email "acc-course-bot@users.noreply.github.com"
+      - name: Provision /data volume for service DBs
+        # The services default their SQLite databases to /data/<svc>.db (overridable via
+        # *_DB_PATH), where /data is a mounted volume under docker compose. Bare `mvn test`
+        # / `dotnet test` / `pytest` on the runner have no such volume, so the Spring
+        # services abort at startup with "path to '/data/...': '/data' does not exist".
+        # Create it writable to mirror the runtime contract without touching learner-branch
+        # app files (which would change the delta-store tree SHAs verify-deltas asserts).
+        run: sudo mkdir -p /data && sudo chmod 777 /data
       - name: Build + validate ${{ matrix.start_branch }}
         run: bash course-build/scripts/validate-branch.sh "${{ matrix.start_branch }}"
         env:
