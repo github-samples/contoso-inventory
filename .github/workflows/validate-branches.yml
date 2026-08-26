@@ -73,6 +73,8 @@ jobs:
           echo "Buildable: $branches"
 
   # Secret scan of the delta store and everything the built branches would contain.
+  # Runs the gitleaks OSS binary directly rather than gitleaks/gitleaks-action@v2,
+  # which requires a paid GITLEAKS_LICENSE secret for organization repositories.
   secret-scan:
     runs-on: ubuntu-latest
     steps:
@@ -81,10 +83,15 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.ref || github.ref }}
       - name: gitleaks (delta store + course-build)
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
-          GITLEAKS_ENABLE_SUMMARY: 'true'
+          GITLEAKS_VERSION: '8.30.1'
+        run: |
+          set -euo pipefail
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks version
+          # Scan the full commit history (fetch-depth: 0). Exits non-zero on any finding.
+          /tmp/gitleaks git . --redact --verbose
 
   # Heavy gate: build each buildable learner branch from deltas and run the suites
   # that exist in that cumulative state (web / .NET / Java / Python / Playwright),
