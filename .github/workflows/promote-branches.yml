@@ -82,6 +82,10 @@ jobs:
           FROM: ${{ github.event.inputs.from_module }}
         run: |
           set -euo pipefail
+          # Make current remote alias tips available so we only move a learner branch when
+          # its content actually changed -- avoids gratuitously rewriting unchanged public
+          # start-of-module-* branches to new commit shas on every promotion.
+          git fetch --no-tags origin "refs/heads/start-of-module-*:refs/remotes/origin/start-of-module-*" || true
           REFSPECS=()
           for start in $(node -e "console.log(JSON.parse(process.env.BRANCHES).join(' '))"); do
             # start = start-of-module-NN ; module = NN-1
@@ -92,23 +96,43 @@ jobs:
             fi
             staged="regen/${DID}/${start}"
             sha="$(git rev-parse "$staged")"
-            # Mutable alias (force — it moves) + immutable version tag (must NOT already exist).
+            staged_tree="$(git rev-parse "${staged}^{tree}")"
+
+            # Mutable alias: move it only when the built content differs from what the branch
+            # already points at (or the branch does not exist yet). Force, because promotion
+            # rebuilds commits (new commit shas even for identical trees).
+            cur_tree="$(git rev-parse --verify --quiet "refs/remotes/origin/${start}^{tree}" 2>/dev/null || true)"
+            if [ "$cur_tree" != "$staged_tree" ]; then
+              REFSPECS+=("+${sha}:refs/heads/${start}")
+              echo "alias ${start}: content changed -> ${staged_tree:0:12} (move)"
+            else
+              echo "alias ${start}: unchanged (${staged_tree:0:12}); leaving in place."
+            fi
+
+            # Immutable version tag: cut exactly once. Never overwrite an existing tag (that
+            # is what "immutable" means); skip it so re-running promotion is idempotent
+            # instead of aborting the whole job.
             tag="acc-${VERSION}/${start}"
             if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
-              echo "ERROR: immutable tag ${tag} already exists; refusing to overwrite." >&2
-              exit 1
+              echo "tag ${tag}: already exists; leaving unchanged."
+            else
+              REFSPECS+=("${sha}:refs/tags/${tag}")
+              echo "tag ${tag}: creating at ${sha:0:12}."
             fi
-            REFSPECS+=("+${sha}:refs/heads/${start}")
-            REFSPECS+=("${sha}:refs/tags/${tag}")
           done
           if [ "${#REFSPECS[@]}" -eq 0 ]; then
-            echo "No refs to promote." >&2; exit 1
+            echo "Nothing to promote: all aliases current and all version tags present."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            : > /tmp/refspecs.txt
+            exit 0
           fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
           printf '%s\n' "${REFSPECS[@]}"
           # persist for next step
           printf '%s\n' "${REFSPECS[@]}" > /tmp/refspecs.txt
 
       - name: Atomic push (all aliases + tags, or nothing)
+        if: steps.refs.outputs.changed == 'true'
         run: |
           set -euo pipefail
           mapfile -t REFSPECS < /tmp/refspecs.txt
