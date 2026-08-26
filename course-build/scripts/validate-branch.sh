@@ -142,11 +142,24 @@ if [ -f playwright.config.ts ]; then
   env -u CI npx playwright test --retries=2
   e2e_rc=$?
   set -e
-  kill "$STACK_PID" 2>/dev/null || true
   if [ "$e2e_rc" -ne 0 ]; then
     echo "ERROR: Playwright e2e failed (exit $e2e_rc)" >&2
+    echo "==== diag: web /assets detail links ===="
+    curl -s http://localhost:4321/assets | grep -oE 'href="/assets/[^"]*"' | sort -u | head -20 || true
+    echo "==== diag: assets-svc GET /assets (first 400 chars) ===="
+    curl -s http://localhost:5001/assets | head -c 400 || true; echo
+    echo "==== diag: assets-svc GET /assets/1 status ===="
+    curl -s -o /dev/null -w '%{http_code}\n' http://localhost:5001/assets/1 || true
+    echo "==== diag: web /assets/1 (qr / error markers) ===="
+    curl -s http://localhost:4321/assets/1 | grep -ioE 'qr code|alert-danger[^<]*|[0-9]{3} [A-Za-z ]+from http[^<"]*' | head -20 || true
+    echo "==== Playwright error-context ===="
+    find test-results -name 'error-context.md' 2>/dev/null | while read -r f; do echo "--- $f ---"; sed -n '1,50p' "$f"; done || true
+    echo "==== dev stack log (tail) ===="
+    tail -n 100 /tmp/e2e-stack.log || true
+    kill "$STACK_PID" 2>/dev/null || true
     exit "$e2e_rc"
   fi
+  kill "$STACK_PID" 2>/dev/null || true
 fi
 
 echo "==> ${START_BRANCH}: all applicable suites passed"
