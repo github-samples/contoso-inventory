@@ -85,7 +85,11 @@ jobs:
           # Make current remote alias tips available so we only move a learner branch when
           # its content actually changed -- avoids gratuitously rewriting unchanged public
           # start-of-module-* branches to new commit shas on every promotion.
-          git fetch --no-tags origin "refs/heads/start-of-module-*:refs/remotes/origin/start-of-module-*" || true
+          # No "|| true": a wildcard that matches nothing (e.g. the first-ever promotion,
+          # before any start branch exists) already exits 0, so the only thing || true would
+          # hide is a real failure (network/auth/remote down). Swallowing that would leave
+          # cur_tree empty for every branch and force-push ALL of them, so let it abort.
+          git fetch --no-tags origin "refs/heads/start-of-module-*:refs/remotes/origin/start-of-module-*"
           REFSPECS=()
           for start in $(node -e "console.log(JSON.parse(process.env.BRANCHES).join(' '))"); do
             # start = start-of-module-NN ; module = NN-1
