@@ -134,7 +134,7 @@
       "patches": [
         "0001-feat-module-05-add-QR-barcode-support-QA-agent-resea.patch"
       ],
-      "expectedTreeSha": "ba8126ae1414dbcc25cfed544071c848e33fcf1c",
+      "expectedTreeSha": "848992615da50a401c9db17da55840e5f6d93e67",
       "expectedAssets": [
         ".github/agents/qa.agent.md",
         "reports/qr-code-research.md",
@@ -156,7 +156,7 @@
       "patches": [
         "0001-feat-module-06-modernize-audit-svc-auth-svc-to-Sprin.patch"
       ],
-      "expectedTreeSha": "54a47a032fe12e6f9496040d93c6ed123c28f8b3",
+      "expectedTreeSha": "cb9a6a19492fa0b7d285685e875f1f03acfc27f7",
       "expectedAssets": [
         ".github/lsp.json",
         ".github/agents/java-migrator.agent.md",
