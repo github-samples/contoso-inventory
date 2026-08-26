@@ -57,6 +57,10 @@ jobs:
           node-version: '22'
       - name: Ensure base commit present
         run: git fetch --no-tags origin "$(node -e "console.log(require('./course-build/manifest.json').base.sha)")" || true
+      - name: Configure git identity (for git am)
+        run: |
+          git config user.name "acc-course-bot"
+          git config user.email "acc-course-bot@users.noreply.github.com"
       - name: Deterministic delta check (trees, assets, ancestry)
         run: node course-build/scripts/build-branches.mjs --check
       - name: Self-test (classification + path detection)
@@ -69,6 +73,8 @@ jobs:
           echo "Buildable: $branches"
 
   # Secret scan of the delta store and everything the built branches would contain.
+  # Runs the gitleaks OSS binary directly rather than gitleaks/gitleaks-action@v2,
+  # which requires a paid GITLEAKS_LICENSE secret for organization repositories.
   secret-scan:
     runs-on: ubuntu-latest
     steps:
@@ -77,10 +83,21 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.ref || github.ref }}
       - name: gitleaks (delta store + course-build)
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
-          GITLEAKS_ENABLE_SUMMARY: 'true'
+          GITLEAKS_VERSION: '8.30.1'
+          # SHA256 of gitleaks_${VERSION}_linux_x64.tar.gz from the upstream
+          # gitleaks_${VERSION}_checksums.txt release asset. Bump both together on upgrade.
+          GITLEAKS_SHA256: '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb'
+        run: |
+          set -euo pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}" -o /tmp/gitleaks.tar.gz
+          # Verify integrity before extracting/executing (pinned supply-chain check).
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks version
+          # Scan the full commit history (fetch-depth: 0). Exits non-zero on any finding.
+          /tmp/gitleaks git . --redact --verbose
 
   # Heavy gate: build each buildable learner branch from deltas and run the suites
   # that exist in that cumulative state (web / .NET / Java / Python / Playwright),
@@ -117,6 +134,14 @@ jobs:
         run: |
           git config user.name "acc-course-bot"
           git config user.email "acc-course-bot@users.noreply.github.com"
+      - name: Provision /data volume for service DBs
+        # The services default their SQLite databases to /data/<svc>.db (overridable via
+        # *_DB_PATH), where /data is a mounted volume under docker compose. Bare `mvn test`
+        # / `dotnet test` / `pytest` on the runner have no such volume, so the Spring
+        # services abort at startup with "path to '/data/...': '/data' does not exist".
+        # Create it writable to mirror the runtime contract without touching learner-branch
+        # app files (which would change the delta-store tree SHAs verify-deltas asserts).
+        run: sudo mkdir -p /data && sudo chmod 777 /data
       - name: Build + validate ${{ matrix.start_branch }}
         run: bash course-build/scripts/validate-branch.sh "${{ matrix.start_branch }}"
         env:

@@ -77,8 +77,18 @@ echo "==> Java services build (all on Java 21; audit/auth target Java 17 bytecod
 echo "==> Python services install + pytest"
 for svc in reporting-svc notifications-svc; do
   if [ -f "services/$svc/pyproject.toml" ]; then
-    pip install -e "services/$svc"
-    if [ -d "services/$svc/tests" ]; then ( cd "services/$svc" && python -m pytest -q ); fi
+    # Early modules ship a tests/ dir containing only a README; real test files
+    # (test_*.py / *_test.py) appear from M03 onward. Only run pytest when they exist,
+    # otherwise just verify the service is installable.
+    if ls "services/$svc"/tests/test_*.py "services/$svc"/tests/*_test.py >/dev/null 2>&1; then
+      # Install the dev extra (pins pytest/pytest-asyncio) when declared, and guarantee
+      # pytest is importable so `python -m pytest` never fails with "No module named pytest".
+      pip install -e "services/$svc[dev]"
+      python -c "import pytest" 2>/dev/null || pip install pytest pytest-asyncio
+      ( cd "services/$svc" && python -m pytest -q )
+    else
+      pip install -e "services/$svc"
+    fi
   fi
 done
 
