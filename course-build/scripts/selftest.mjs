@@ -44,5 +44,56 @@ check('M04=asset', bySource[4] === 'asset');
 check('M05=seed', bySource[5] === 'seed');
 check('M06=seed', bySource[6] === 'seed');
 
+// Baseline reachability + first-run fallback (integration: real temp git repo).
+// Guards the regenerate workflow against an orphaned .last-acc-sha crashing `git diff`.
+console.log('detect-affected-modules baseline fallback:');
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, mkdirSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { commitExists } = await import('./detect-affected-modules.mjs');
+
+  const script = resolve(__dirname, 'detect-affected-modules.mjs');
+  const repo = mkdtempSync(join(tmpdir(), 'acc-detect-'));
+  const g = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const detect = (...a) => JSON.parse(execFileSync(process.execPath, [script, '--acc', repo, ...a], { encoding: 'utf8' }));
+  try {
+    g('init', '-q');
+    g('config', 'user.email', 'test@example.com');
+    g('config', 'user.name', 'test');
+    mkdirSync(join(repo, 'content'));
+    writeFileSync(join(repo, 'content', '03-x.md'), 'a\n');
+    g('add', '-A'); g('commit', '-q', '-m', 'c1');
+    const from = g('rev-parse', 'HEAD').trim();
+    writeFileSync(join(repo, 'content', '05-y.md'), 'b\n');
+    g('add', '-A'); g('commit', '-q', '-m', 'c2');
+    const to = g('rev-parse', 'HEAD').trim();
+
+    check('commitExists true for real commit', commitExists(repo, from) === true);
+    const BOGUS = 'b17669201ec145c91db7175e1fa4a1d60ba9fc01';
+    check('commitExists false for orphaned SHA', commitExists(repo, BOGUS) === false);
+
+    // A non-git directory is a real error, not a missing baseline: must rethrow, not return false.
+    const notARepo = mkdtempSync(join(tmpdir(), 'acc-norepo-'));
+    let threw = false;
+    try { commitExists(notARepo, from); } catch { threw = true; } finally { rmSync(notARepo, { recursive: true, force: true }); }
+    check('commitExists rethrows on non-git dir (fails fast)', threw === true);
+
+    const good = detect('--from', from, '--to', to);
+    check('valid baseline diffs (module 5 detected)', good.min === 5 && good.firstRun === false && good.baselineMissing === false);
+
+    // A baseline with surrounding whitespace (e.g. read from a file) must be normalized
+    // so the existence check and the diff agree; it must not fall into a spurious regen.
+    const padded = detect('--from', `\n  ${from}\n`, '--to', to);
+    check('whitespace-padded baseline is normalized (still module 5)', padded.min === 5 && padded.firstRun === false);
+
+    const missing = detect('--from', BOGUS, '--to', to);
+    check('orphaned baseline -> firstRun (no crash)', missing.firstRun === true && missing.baselineMissing === true);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+}
+
 if (failures) { console.error(`\n${failures} check(s) failed.`); process.exit(1); }
 console.log('\nAll self-test checks passed.');
