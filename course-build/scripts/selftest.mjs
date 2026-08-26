@@ -83,6 +83,11 @@ console.log('detect-affected-modules baseline fallback:');
     const good = detect('--from', from, '--to', to);
     check('valid baseline diffs (module 5 detected)', good.min === 5 && good.firstRun === false && good.baselineMissing === false);
 
+    // A baseline with surrounding whitespace (e.g. read from a file) must be normalized
+    // so the existence check and the diff agree; it must not fall into a spurious regen.
+    const padded = detect('--from', `\n  ${from}\n`, '--to', to);
+    check('whitespace-padded baseline is normalized (still module 5)', padded.min === 5 && padded.firstRun === false);
+
     const missing = detect('--from', BOGUS, '--to', to);
     check('orphaned baseline -> firstRun (no crash)', missing.firstRun === true && missing.baselineMissing === true);
   } finally {

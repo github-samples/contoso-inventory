@@ -77,19 +77,24 @@ export { moduleForPath };
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const hasFrom = !!args.from && args.from.trim() !== '';
+  // Normalize revisions once so the existence check and the diff always use the exact
+  // same strings (a stray newline/space, e.g. from a file, must not let the check pass
+  // while `git diff` still aborts on a bad revision).
+  const from = (args.from || '').trim();
+  const to = (args.to || '').trim();
+  const hasFrom = from !== '';
 
   // A supplied baseline that is no longer reachable in the ACC repo (history rewrite / orphaned
   // SHA) is treated as a missing baseline: fall back to first-run instead of crashing on git diff.
-  const baselineMissing = hasFrom && !commitExists(args.acc, args.from.trim());
+  const baselineMissing = hasFrom && !commitExists(args.acc, from);
   if (baselineMissing) {
-    console.error(`WARN: baseline commit ${args.from.trim()} is not reachable in --acc; treating as first run (full regen).`);
+    console.error(`WARN: baseline commit ${from} is not reachable in --acc; treating as first run (full regen).`);
   }
   const firstRun = !hasFrom || baselineMissing;
 
   let files = [];
   if (!firstRun) {
-    const out = git(args.acc, 'diff', '--name-only', `${args.from}`, `${args.to}`);
+    const out = git(args.acc, 'diff', '--name-only', from, to);
     files = out.split('\n').map(s => s.trim()).filter(Boolean);
   }
 
