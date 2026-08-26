@@ -49,10 +49,15 @@ function git(cwd, ...args) {
 // would otherwise make `git diff <bad-object>` abort with "fatal: bad object".
 function commitExists(cwd, rev) {
   try {
-    execFileSync('git', ['cat-file', '-e', `${rev}^{commit}`], { cwd, stdio: 'ignore' });
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${rev}^{commit}`], { cwd, stdio: 'ignore' });
     return true;
-  } catch {
-    return false;
+  } catch (err) {
+    // `git rev-parse --verify --quiet` exits 1 (silently) for a well-formed but
+    // unknown/unreachable revision. Any other failure (bad --acc path, not a git repo,
+    // git missing) exits 128 or fails to spawn; rethrow so real errors fail fast instead
+    // of masquerading as a missing baseline and silently triggering a full regen.
+    if (err && err.status === 1) return false;
+    throw err;
   }
 }
 

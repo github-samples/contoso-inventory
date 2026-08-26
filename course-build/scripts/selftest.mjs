@@ -57,7 +57,7 @@ console.log('detect-affected-modules baseline fallback:');
   const script = resolve(__dirname, 'detect-affected-modules.mjs');
   const repo = mkdtempSync(join(tmpdir(), 'acc-detect-'));
   const g = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-  const detect = (...a) => JSON.parse(execFileSync('node', [script, '--acc', repo, ...a], { encoding: 'utf8' }));
+  const detect = (...a) => JSON.parse(execFileSync(process.execPath, [script, '--acc', repo, ...a], { encoding: 'utf8' }));
   try {
     g('init', '-q');
     g('config', 'user.email', 'test@example.com');
@@ -73,6 +73,12 @@ console.log('detect-affected-modules baseline fallback:');
     check('commitExists true for real commit', commitExists(repo, from) === true);
     const BOGUS = 'b17669201ec145c91db7175e1fa4a1d60ba9fc01';
     check('commitExists false for orphaned SHA', commitExists(repo, BOGUS) === false);
+
+    // A non-git directory is a real error, not a missing baseline: must rethrow, not return false.
+    const notARepo = mkdtempSync(join(tmpdir(), 'acc-norepo-'));
+    let threw = false;
+    try { commitExists(notARepo, from); } catch { threw = true; } finally { rmSync(notARepo, { recursive: true, force: true }); }
+    check('commitExists rethrows on non-git dir (fails fast)', threw === true);
 
     const good = detect('--from', from, '--to', to);
     check('valid baseline diffs (module 5 detected)', good.min === 5 && good.firstRun === false && good.baselineMissing === false);
