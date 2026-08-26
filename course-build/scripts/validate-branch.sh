@@ -144,18 +144,21 @@ if [ -f playwright.config.ts ]; then
   set -e
   if [ "$e2e_rc" -ne 0 ]; then
     echo "ERROR: Playwright e2e failed (exit $e2e_rc)" >&2
-    echo "==== diag: web /assets detail links ===="
-    curl -s http://localhost:4321/assets | grep -oE 'href="/assets/[^"]*"' | sort -u | head -20 || true
-    echo "==== diag: assets-svc GET /assets (first 400 chars) ===="
-    curl -s http://localhost:5001/assets | head -c 400 || true; echo
-    echo "==== diag: assets-svc GET /assets/1 status ===="
-    curl -s -o /dev/null -w '%{http_code}\n' http://localhost:5001/assets/1 || true
-    echo "==== diag: web /assets/1 (qr / error markers) ===="
-    curl -s http://localhost:4321/assets/1 | grep -ioE 'qr code|alert-danger[^<]*|[0-9]{3} [A-Za-z ]+from http[^<"]*' | head -20 || true
+    set +e
+    first_id="$(curl -s http://localhost:5001/assets | sed -n 's/.*"id":\([0-9]*\).*/\1/p' | head -1)"
+    echo "==== diag: assets-svc GET /assets/${first_id} status ===="
+    curl -s -o /dev/null -w '%{http_code}\n' "http://localhost:5001/assets/${first_id}"
+    echo "==== diag: assets-svc GET /assets/${first_id}/qr status ===="
+    curl -s -o /dev/null -w '%{http_code}\n' "http://localhost:5001/assets/${first_id}/qr"
+    echo "==== diag: web /assets/${first_id} contains 'QR code'? ===="
+    curl -s "http://localhost:4321/assets/${first_id}" | grep -c -i 'qr code'
+    echo "==== diag: web /assets/${first_id} error alert (if any) ===="
+    curl -s "http://localhost:4321/assets/${first_id}" | grep -o 'alert-danger[^<]*' | head -3
     echo "==== Playwright error-context ===="
-    find test-results -name 'error-context.md' 2>/dev/null | while read -r f; do echo "--- $f ---"; sed -n '1,50p' "$f"; done || true
-    echo "==== dev stack log (tail) ===="
-    tail -n 100 /tmp/e2e-stack.log || true
+    find test-results -name 'error-context.md' 2>/dev/null | head -1 | while read -r f; do echo "--- $f ---"; sed -n '1,80p' "$f"; done
+    echo "==== dev stack log (assets restarts / errors) ===="
+    grep -iE 'assets|restart|Now listening|Application started|error|exception' /tmp/e2e-stack.log | tail -60
+    set -e
     kill "$STACK_PID" 2>/dev/null || true
     exit "$e2e_rc"
   fi
