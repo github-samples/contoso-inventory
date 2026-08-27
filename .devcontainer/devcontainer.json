@@ -15,6 +15,9 @@
       "version": "21.0.12+1-ms",
       "installMaven": true,
       "mavenVersion": "3.9.6"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
     }
   },
   "forwardPorts": [4321, 5001, 5002, 5003, 5004, 5005, 5006],
